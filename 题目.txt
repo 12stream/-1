@@ -177,6 +177,15 @@
  } 
 
 第5题 如何实现一个 apply 函数？
+
+  call和apply之间的差别，就会发现，它们的实现原理只有一点点差别，那就是后面的参数不一样，apply的第二个参数是一个数组，所以可以拿call的实现方法稍微改   动一下就可以了
+  Function.prototype.myApply = function (object, arg) {
+    let obj = Object(object) || window; // 如果没有传this参数，this将指向window
+    obj.fn = this; // 将this的指向函数本身；
+    obj.fn(arg); // 这里不要将数组打散，而是将整个数组传进去;
+    delete obj.fn; // 再删除obj的_fn_属性,去除影响.
+  }
+
 第6题 简单说下原型链？
 第7题 怎么判断对象类型？
 第8题 说说箭头函数的特点
