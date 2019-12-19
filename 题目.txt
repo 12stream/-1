@@ -60,8 +60,87 @@
     xw.say.bind(xh,"实验小学","六年级")();或者xw.say.bind(xh)("实验小学","六年级");
   从而可以看出call和apply都是对函数的直接调用，而bind方法返回的仍然是一个函数，因此后面还需要()来进行调用才可以。
   call方法传入的是字符串，而apply方法传入的是一个数组，因为call()是apply()的语法糖；
+  需理解以下两个例子：
+  const xw = {
+        name : "小王",
+        gender : "男",
+        age : 24,
+        say() {
+            return this.name + " , " + this.gender + " ,今年" + this.age                               
+        }
+  }
+  console.log(xw.say());
+  //小王，男，今年24
+  const person = {
+        age: 20,
+        getAge() {
+          return this.age
+        }
+      }
+  const getAge = person.getAge
+  console.log(getAge())
+  //undefined
+  使用bind方法
+  const getAge = person.getAge.bind(person)
+  console.log(getAge())
+  //20
 
 第3题 如何实现一个 bind 函数？
+
+  来自MDN:bind的介绍：
+  bind()方法创建一个新的函数, 当被调用时，将其this关键字设置为提供的值，在调用新函数时，在任何提供之前提供一个给定的参数序列。
+  为什么要自己去实现一个bind函数？
+  因为bind()函数在 ECMA-262 第五版才被加入；它可能无法在所有浏览器上运行。
+  看下面一个例子：
+  function animal(name) {
+      this.name = name
+  }
+  let obj = {}
+
+  let cat = animal.bind(obj)
+  cat('lily')
+  console.log(obj.name)  //lily
+
+  let tom = new cat('tom')
+  console.log(obj.name)  //lily
+  console.log(tom.name)  //tom
+  结果发现，obj.name依然是lily而没有变成tom，所以就像MDN描述的那样，如果绑定函数cat是通过new操作符来创建实例对象的话，this会指向创建的新对象tom，   而不再固定绑定指定的对象obj。
+  
+  而bind函数的核心作用：绑定this、初始化参数。
+  语法：fun.bind(thisArg[, arg1[, arg2[, ...]]])
+  MDN:bind的实现如下：
+  if (!Function.prototype.bind) {
+  Function.prototype.bind = function(oThis) {
+    if (typeof this !== 'function') {
+      // closest thing possible to the ECMAScript 5
+      // internal IsCallable function
+      throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable');
+    }
+
+    var aArgs = Array.prototype.slice.call(arguments, 1),//这里的arguments是跟oThis一起传进来的实参
+      fToBind = this,
+      fNOP    = function() {},
+      fBound  = function() {
+        return fToBind.apply(this instanceof fNOP
+          ? this
+          : oThis,
+          // 获取调用时(fBound)的传参.bind 返回的函数入参往往是这么传递的
+          aArgs.concat(Array.prototype.slice.call(arguments)));
+      };
+
+    // 维护原型关系
+    if (this.prototype) {
+      // Function.prototype doesn't have a prototype property
+      fNOP.prototype = this.prototype;
+    }
+    fBound.prototype = new fNOP();
+
+    return fBound;
+  };
+}
+其中Array.prototype.slice.call(arguments)的意思是能将具有length属性的对象转成数组
+由于arguments是类数组对象，不拥有数组的slice方法，所以需要通过call来将slice的this指向arguments。args就是调用bind时传入的初始化参数（剔除了第一个参数oThis）。将args与绑定函数执行时的实参arguments通过concat连起来作为参数传入。
+  
 第4题 请实现一个 call 函数
 第5题 如何实现一个 apply 函数？
 第6题 简单说下原型链？
