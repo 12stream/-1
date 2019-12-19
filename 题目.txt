@@ -104,7 +104,8 @@
   let tom = new cat('tom')
   console.log(obj.name)  //lily
   console.log(tom.name)  //tom
-  结果发现，obj.name依然是lily而没有变成tom，所以就像MDN描述的那样，如果绑定函数cat是通过new操作符来创建实例对象的话，this会指向创建的新对象tom，   而不再固定绑定指定的对象obj。
+  结果发现，obj.name依然是lily而没有变成tom，所以就像MDN描述的那样，如果绑定函数cat是通过new操作符来创建实例对象的话，
+  this会指向创建的新对象tom，而不再固定绑定指定的对象obj。
   
   而bind函数的核心作用：绑定this、初始化参数。
   语法：fun.bind(thisArg[, arg1[, arg2[, ...]]])
@@ -139,9 +140,42 @@
   };
 }
 其中Array.prototype.slice.call(arguments)的意思是能将具有length属性的对象转成数组
-由于arguments是类数组对象，不拥有数组的slice方法，所以需要通过call来将slice的this指向arguments。args就是调用bind时传入的初始化参数（剔除了第一个参数oThis）。将args与绑定函数执行时的实参arguments通过concat连起来作为参数传入。
+由于arguments是类数组对象，不拥有数组的slice方法，所以需要通过call来将slice的this指向arguments。args就是调用bind时传入的初始化参数
+（剔除了第一个参数oThis）。将args与绑定函数执行时的实参arguments通过concat连起来作为参数传入。
   
 第4题 请实现一个 call 函数
+
+  实现思路：
+  1.改变this指向：可以将目标函数作为这个对象的属性
+  2.利用arguments类数组对象实现参数不定长
+  3.不能增加对象的属性，所以在结尾需要delete
+  es6实现：
+  Function.prototype.myCall = function (object, ...arg) {
+      if (this === Function.prototype) {
+          return undefined; // 用于防止 Function.prototype.myCall() 直接调用
+      }
+      let obj = Object(object) || window; // 加入这里没有参数，this则要指向window;
+      obj.fn = this; // 将this的指向函数本身；
+      obj.fn(...arg); // 对象上的方法，在调用时，this是指向对象的。
+      delete obj.fn; // 再删除obj的_fn_属性,去除影响.
+  }
+  es5实现：
+  Function.prototype.myCall = function(obj){
+    let arg = [];
+    for(let i = 1 ; i<arguments.length ; i++){
+        arg.push( 'arguments[' + i + ']' ) ;
+        // 这里要push 这行字符串  而不是直接push 值
+        // 因为直接push值会导致一些问题
+        // 例如: push一个数组 [1,2,3]
+        // 在下面 eval调用时,进行字符串拼接,JS为了将数组转换为字符串 ，
+        // 会去调用数组的toString()方法,变为 '1,2,3' 就不是一个数组了，相当于是3个参数.
+        // 而push这行字符串，eval方法，运行代码会自动去arguments里获取值
+    }
+    obj._fn_ = this;
+    eval( 'obj._fn_(' + arg + ')' ) // 字符串拼接，JS会调用arg数组的toString()方法，这样就传入了所有参数
+    delete obj._fn_;
+ } 
+
 第5题 如何实现一个 apply 函数？
 第6题 简单说下原型链？
 第7题 怎么判断对象类型？
