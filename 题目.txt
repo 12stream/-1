@@ -179,7 +179,7 @@
 第5题 如何实现一个 apply 函数？
 
   对比call和apply之间的差别，就会发现，它们的实现原理只有一点点差别，那就是后面的参数不一样，apply的第二个参数是一个数组，
-  所以可以拿call的实现方法稍微改   动一下就可以了
+  所以可以拿call的实现方法稍微改动一下就可以了
   Function.prototype.myApply = function (object, arg) {
     let obj = Object(object) || window; // 如果没有传this参数，this将指向window
     obj.fn = this; // 将this的指向函数本身；
@@ -195,8 +195,23 @@
   每个实例对象都有一个__proto__，可称为隐式原型
   实例对象的隐式原型的值 === 其对应构造函数的显示原型的值
   而原型链的别名为隐式原型链
+  当前对象的__proto__属性下的constructor属性的类型是当前对象的真实类型，那么当前对象的原型也就是构造函数
+  类型.prototype。根据此结论往下推到，__proto__属性里的__proto__属性里的constructor属性类型也就是__proto__原型对象的真实类型，
+  __proto__原型对象的原型对象也是构造函数.prototype。（__proto__对象的真实类型是Object，__proto__的原型对象是Object.prototype）        Object.prototype的原型对象是null，也就到头了。
 
 第7题 怎么判断对象类型？
+
+  toString实现，toString()是定义在Object.prototype上的实例方法，所有实例对象继承了该方法，其可以返回一个对象的字符串形式。
+  先看下面的情况
+  'abc'.toString(); // "abc"
+  [1,2].toString(); // "1,2"
+  new Date().toString(); // "Sun Mar 24 2019 16:08:58 GMT+0800"
+  然而很明显字符串、数组、Date等对象拥有自定义的toString方法，会覆盖Object.prototype.toString方法。
+  此时配合call()，改变toString方法执行时的所在的环境，可以得到对象的精确类型。
+  bject.prototype.toString.call('') // "[object String]"
+  Object.prototype.toString.call([]) // "[object Array]"
+  Object.prototype.toString.call(new Date()) // "[object Date]"
+
 第8题 说说箭头函数的特点
 第9题 如何确定This指向
 第10题 async、await 的优缺点
