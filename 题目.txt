@@ -36,6 +36,31 @@
 
 
 第2题 说说bind、call、apply的 区别？
+
+  bind、call、apply三者都是用来改变函数的this对象的指向的，第一个参数都是this,是prototype的方法。
+  var xw = {
+         name : "小王",
+         gender : "男",
+         age : 24,
+         say : function(school,grade) {
+            alert(this.name + " , " + this.gender + " ,今年" + this.age + " ,在" + school + "上" + grade);                               
+         }
+  }
+  var xh = {
+        name : "小红",
+        gender : "女",
+        age : 18
+   }
+   xw.say();
+  对于call可以这样：
+    xw.say.call(xh,"实验小学","六年级");
+  对于apply可以这样：
+    xw.say.apply(xh,["实验小学","六年级郑州牛皮癣医"]);
+  而对于bind来说需要这样
+    xw.say.bind(xh,"实验小学","六年级")();或者xw.say.bind(xh)("实验小学","六年级");
+  从而可以看出call和apply都是对函数的直接调用，而bind方法返回的仍然是一个函数，因此后面还需要()来进行调用才可以。
+  call方法传入的是字符串，而apply方法传入的是一个数组，因为call()是apply()的语法糖；
+
 第3题 如何实现一个 bind 函数？
 第4题 请实现一个 call 函数
 第5题 如何实现一个 apply 函数？
