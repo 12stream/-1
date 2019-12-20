@@ -488,6 +488,18 @@
   g.throw(new Error('Something went wrong')) // "Error caught!"
 
 第12题 对Promise的理解
+
+  Promise 是异步编程的一种解决方案
+  Promise就是一个构造函数（函数也是对象）
+  Promise的三种状态:
+  fulfilled：满足，成功
+  rejected：拒绝，失败
+  pending：初始状态
+  注：settled是指fulfilled，rejected状态之一。
+  一般resolve，reject函数被调用时分别将Promise状态设置为fulfilled，rejected
+  因为Promise.prototype.then方法和Promise.prototype.catch方法都返回Promise对象。所以可以链式调用:
+  myPromise.then(xxx).then(xxx);
+
 第13题 == 和 ===区别，什么情况用 ==
 第14题 垃圾回收 新生代算法，老生代算法
 第15题 说说你对闭包的理解
