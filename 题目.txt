@@ -224,6 +224,223 @@
   8.箭头函数写法更加简洁
 
 第9题 如何确定This指向
+
+  this指向，简单来说就是谁调用，this就指向谁。
+  此处this主要针对顶层对象为window进行阐述
+  分情况来，主要有以下五种
+  1.普通函数调用
+    function demo() {
+        console.log(this);  // window
+    }
+    demo();
+    当函数作为函数独立调用的时候，则是在全局环境中运行，this 则指向全局对象 window
+    此处demo 函数独立调用，所以 this 指向全局对象 window
+    再如：
+    function outer() {
+      function inner() {
+          console.log(this); // window
+      }
+      inner();
+    }
+    outer();
+    
+    function demo(func) {
+        func();
+    }
+    demo(function () {
+        console.log(this); // window
+    });
+    虽然在 outer 函数内部声明了一个 inner 函数，但实际上 inner 函数是独立调用的，所以依然是在全局环境，this仍然是指向了 window。
+    给demo函数传入一个匿名函数，执行匿名函数func的时候，依然是作为函数独立调用，所以this仍然指向window。
+    理解一下什么是作为函数独立调用：
+    当定义一个函数，例如var demo = function () {} 等号右边的函数是独立放在内存中的，然后赋予demo变量的指向为函数所在的内存地址，
+    当直接调用 demo()，相当于直接找到函数本身执行，所以函数内部创建的上下文为全局上下文，this 则指向了全局对象 window。
+    
+  2.对象方法调用
+    当调用一个对象方法时，this 代表了对象本身。
+    let obj = {
+        name: 'invoker',
+        getName: function () {
+            console.log(this);   // obj
+            console.log(this.name);  // "invoker"
+        }
+    }
+    obj.getName();
+    定义了一个 obj 对象，调用其内部的getName，this 则指向了 obj 对象。
+    稍微修改一下
+
+    var name = 'windowName';
+    let obj = {
+        name: 'invoker',
+        getName: function () {
+            console.log(this);  // window
+            console.log(this.name); // windowName
+        }
+    }
+ 
+    var getName = obj.getName;
+    getName();
+    当用一个变量 getName 接收 obj 对象的 getName方法， 再执行 getName，发现 this 指向了 window，因为此时变量 getName 直接指向了函数本身，
+    而不是通过 obj 去调用，此时就变成了函数独立调用的情况了。
+    再看个例子
+
+    let obj = {
+        test: function() {
+            function fn() {
+                console.log(this); // window
+            }
+            fn();
+        },
+        test1: function (fn) {
+            fn()
+        }
+    }
+
+    obj.test();
+    obj.test1(function () {
+        console.log(this) // window
+    });
+    虽然在 obj 对象的 test 方法内定义了 fn ，但执行时同样属于函数独立调用，所以 this 指向 window。
+    将函数作为参数传入 obj 的 test1 方法，也属于函数独立调用，this 同样指向 window。
+  3.构造函数调用
+    使用 new 关键字调用函数，则是构造函数调用，this 指向了该构造函数新创建的对象。
+
+    function person(name) {
+        this.name = name
+    }
+
+    let p = new person('invoker')
+    console.log(p.name) // 'invoker'
+    回顾一下 new 关键词的过程：
+
+    创建一个新的对象 obj
+    使得 obj 的 __proto__ 指向 构造函数的原型对象
+    执行构造函数中的 constructor，改变this的指向为 obj
+    如果结果是对象类型，则返回结果，否则返回obj
+    function myNew(Fn) {
+        let obj = {}
+        obj.__proto__ = Fn.prototype
+
+        const res = Fn.prototype.constructor.call(obj)
+        if (typeof res === 'object') {
+            obj = res
+        }
+
+        return obj
+    }
+  4.call、apply、bind
+    this 指向的是 call 、 apply、bind 调用时传递的第一个参数。
+
+    let obj = {
+        name: 'invoker'
+    }
+
+    function demo() {
+        console.log(this.name) // 'invoker'
+    }
+
+    demo.call(obj)
+    demo.apply(obj) 
+    demo.bind(obj)() 
+  5.箭头函数
+  箭头函数在执行时并不会创建自身的上下文，它的 this 取决于自身被定义的所在执行上下文。
+
+  例子：
+
+      let obj = {
+          fn: () => {
+              console.log(this) // window
+          }
+      }
+
+      obj.fn()
+  obj 的 fn 指向一个箭头函数，由于只有函数可以创建执行上下文，而箭头函数外部并没有包裹函数，所以箭头函数所在的执行上下文为全局的执行上下文，
+  this 指向 window
+
+  包裹一个函数看看呗？
+
+      let obj = {
+          fn: function () {
+              console.log('箭头函数所在执行上下文', this) // '箭头函数所在执行上下文' obj
+
+              var arrow = () => {
+                  console.log(this) //obj
+              }
+              arrow()
+          }
+      }
+
+      obj.fn()
+  箭头函数 arrow 被定义在 obj.fn 内，所以 fn 中的 this 就是 arrow 中的 this
+
+  箭头函数一次绑定上下文后便不可更改：
+
+      let obj = { name: 'invoker' }
+
+      var demo = () => {
+          console.log(this) // window
+      }
+
+      demo.call(obj)
+  虽然使用了 call 函数间接修改 this 的指向，但并不起作用。
+  
+  为什么会有this的设计
+  javascript中存在 this 的设计，跟其内存中的数据结构有关系。
+
+  假设定义 let obj = { name: 'invoker' }
+
+  此时会先生成一个对象 { name: 'invoker' } 并放在内存当中
+  将 { name: 'invoker } 所在的内存地址赋予 obj
+  所以 obj 其实就是个指向某个对象的地址，如果要读取 obj.name，则先要找到 obj 所在地址，然后从地址中拿到原始对象，读取 name 属性。
+
+  对象中每个属性都有一个属性描述对象：可通过 Object.getOwnPropertyDescriptor(obj, key) 来读取。
+  也就是说上面所说的 obj 的 name 属性实际是下面这样的
+
+  {
+    name: {
+      [[value]]: 'invoker',
+      [[configurable]]: true,
+      [[enumerable]]: true,
+      [[writable]]: true
+    }
+  }
+  value 就是获得的值。
+
+  现在假设对象的属性是一个函数：
+
+      let name = 'windowName'
+      let obj = {
+          name: 'invoker',
+          sayHello: function () {
+              console.log('my name is ' + this.name)
+          }
+      }
+
+      let descriptor = Object.getOwnPropertyDescriptor(obj, 'sayHello')
+      console.log(descriptor)
+
+      //这个sayHello的属性描述对象为:
+        sayHello: {
+          [[value]]: ƒ (),
+          [[configurable]]: true,
+          [[enumerable]]: true,
+          [[writable]]: true
+        }
+  sayHello 的 value 值是一个函数，这个时候，引擎会单独将这个函数放在 内存 当中，然后将函数的内存地址赋予 value。
+
+  因此可以得知，这个函数在 内存 中是单独的，并不被谁拥有，所以它可以在不同的上下文执行。
+
+  由于函数可以在不同上下文执行，所以需要一种机制去获取当前函数内部的执行上下文。所以，就有了 this，它指向了当前函数执行的上下文。
+
+  // 接着上面代码
+
+      obj.sayHello() // my name is invoker
+
+      let sayHello = obj.sayHello
+      sayHello() // my name is windowName
+  obj.sayHello() 是通过 obj 找到 sayHello，也就是对象方法调用，所以就是在 obj 环境执行。
+  当 let sayHello = obj.sayHello，变量 sayHello 就直接指向函数本身，所以 sayHello() 也就是函数独立调用，所以是全局环境执行。
+
 第10题 async、await 的优缺点
 第11题 generator 原理
 第12题 对Promise的理解
