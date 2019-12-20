@@ -442,6 +442,12 @@
   当 let sayHello = obj.sayHello，变量 sayHello 就直接指向函数本身，所以 sayHello() 也就是函数独立调用，所以是全局环境执行。
 
 第10题 async、await 的优缺点
+  优点：
+  一个函数如果加上async，那么该函数就会返回一个Promise
+  相比直接使用Promise来说，优势在于处理then的调用链，能够更清晰准确的写出代码
+  缺点：
+  await将异步代码改造成了同步代码，如果多个异步代码没有依赖性却使用了await会导致性能上的降低。
+
 第11题 generator 原理
 第12题 对Promise的理解
 第13题 == 和 ===区别，什么情况用 ==
