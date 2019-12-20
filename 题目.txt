@@ -449,6 +449,44 @@
   await将异步代码改造成了同步代码，如果多个异步代码没有依赖性却使用了await会导致性能上的降低。
 
 第11题 generator 原理
+  1.有 Generator next 函数的特性，next 函数运行后会返回如下结构：
+  { value: 'world', done: false }
+  或者
+  { value: undefined, done: true }
+  那么我们可以使用递归运行 next 函数，如果 done 为 true 则停止 next 函数的运行
+  2.yield 表达式本身没有返回值，或者说总是返回 undefined。
+  next 方法可以带一个参数，该参数就会被当作上一个 yield 表达式的返回值。
+  由于 next 方法的参数表示上一个 yield 表达式的返回值，所以在第一次使用 next 方法时，传递参数是无效的。
+  function* test() {
+    const a = yield "a"
+    console.log(a)
+    return true
+  }
+  const gen = test()
+  // 第一次 next() 会卡在 yield a 中，next 返回 {value: "a", done: false}
+  // 第一个 next() 函数的参数是无效的，无需传递
+  const nextOne = gen.next() 
+  // 传递参数 nextOne.value
+  // test 函数中的 console.log 输出 'a'
+  // 第二次的 next() 返回值为 {value: true, done: true}
+  gen.next(nextOne.value)
+  3.gen.throw(exception) 可以抛出异常，并恢复生成器的执行（前提需要 try catch yield 语句），返回带有 done 及 value 两个属性的对象。
+  而且该异常可以通过 try...catch 块进行捕获。那么我们可以通过 gen.throw 抛出 Promise 错误，这样就可以使用 try catch 拦截 Promise 的错误了。
+  function* gen() {
+    let a
+    try {
+      a = yield 42
+    } catch (e) {
+      console.log('Error caught!')
+    }
+    console.log(a)
+    yield 33
+  }
+
+  var g = gen()
+  g.next() // { value: 42, done: false }
+  g.throw(new Error('Something went wrong')) // "Error caught!"
+
 第12题 对Promise的理解
 第13题 == 和 ===区别，什么情况用 ==
 第14题 垃圾回收 新生代算法，老生代算法
