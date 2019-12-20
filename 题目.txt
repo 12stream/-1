@@ -213,6 +213,16 @@
   Object.prototype.toString.call(new Date()) // "[object Date]"
 
 第8题 说说箭头函数的特点
+
+  1.没有this
+  2.不能使用new 构造函数
+  3.不绑定arguments，用rest参数…解决
+  4.捕获其所在上下文的 this 值，作为自己的 this 值
+  5.箭头函数没有原型属性
+  6.箭头函数不能当做Generator函数,不能使用yield关键字
+  7.箭头函数不能换行
+  8.箭头函数写法更加简洁
+
 第9题 如何确定This指向
 第10题 async、await 的优缺点
 第11题 generator 原理
