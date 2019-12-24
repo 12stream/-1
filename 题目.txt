@@ -779,6 +779,26 @@
   }
 
 第20题 数组降维
+
+  多维数组转一维数组
+  function flattenArray(list, target) {
+  const len = list.length;
+  for(let i = 0; i < len; i++) {
+    if (list[i] instanceof Array) {
+      flattenArray(list[i], target);
+    } else {
+      target && target.push(list[i]);
+    }
+  }
+}
+
+let target = new Array();
+const list = [1, [3, [4, [6, 7]], 5], 2];
+flattenArray(list, target);
+console.log("list ", target);
+在es6中flat()方法也可以实现
+
+
 第21题 请实现一个深拷贝
 第22题 typeof 于 instanceof 区别
 第23题 cookie和localSrorage、session、indexDB 的区别
