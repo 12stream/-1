@@ -679,6 +679,25 @@
 　　　　因此它传递的值也就是这个内存地址，这也就是为什么函数内部对这个参数的修改会体现在外部的原因了，因为它们都指向同一个对象。
 
 第17题 浏览器 Eventloop 和 Node 中的有什么区别
+
+  浏览器环境下，microtask 的任务队列是每个 macrotask 执行完之后执行。而在 Node.js 中，microtask 会在事件循环的各个阶段之间执行，
+  也就是一个阶段执行完毕，就会去执行 microtask 队列的任务。
+  看下面一个列子：
+  setTimeout(()=>{
+        console.log('timer1')
+        Promise.resolve().then(function() {
+            console.log('promise1')
+        })
+    }, 0)
+    setTimeout(()=>{
+        console.log('timer2')
+        Promise.resolve().then(function() {
+            console.log('promise2')
+        })
+    }, 0)
+    浏览器端运行结果：timer1=>promise1=>timer2=>promise2
+    Node 端运行结果：timer1=>timer2=>promise1=>promise2
+
 第18题 怎样理解setTimeout 执行误差
 第19题 说说函数节流和防抖
 第20题 数组降维
