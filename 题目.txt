@@ -890,7 +890,27 @@ console.log("list ", target);
     } 
     alert(isArrayFn(arr));// true
 
-第23题 cookie和localSrorage、session、indexDB 的区别
+第23题 cookie和web Storage、session、indexDB 的区别
+
+  cookie数据存放在客户的浏览器上
+  cookie不是很安全，别人可以分析存放在本地的cookie并进行cookie欺骗
+  cookie中保存的是字符串 
+  单个cookie保存的数*据不能超过4K，很多浏览器都限制一个站点最多保存20个cookie 
+  cookie中如果设置了路径参数，那么同一个网站中不同路径下的cookie互相是访问不到的*
+  cookie的作用是与服务器进行交互，作为http规范的一部分而存在的，而web Storage仅仅是为了在本地“存储”数据而生 
+  cookie：只在设置的cookie过期时间之前有效，即使窗口关闭或浏览器关闭 
+  sessionStorage、localStorage、cookie都是在浏览器端存储的数据
+  其中sessionStorage的概念很特别，引入了一个“浏览器窗口”的概念，sessionStorage是在同源的同窗口中，
+  始终存在的数据，也就是说只要这个浏览器窗口没有关闭，即使刷新页面或进入同源另一个页面，数据仍然存在，
+  关闭窗口后，sessionStorage就会被销毁，同时“独立”打开的不同窗口，即使是同一页面，sessionStorage对象也是不同的
+  sessionStorage和localStorage存储大小可以达到5M或更大 
+  localStorage：始终有效，窗口或浏览器关闭也一直保存，因此用作持久数据
+  session数据放在服务器上
+  session会在一定时间内保存在服务器上，当访问增多，会比较占用你服务器的性能
+  session中保存的是对象
+  session不能区分路径，同一个用户在访问一个网站期间，所有的session在任何一个地方都可以访问到
+  IndexedDB是一种使用浏览器存储大量数据的方法，它创造的数据可以被查询，并且可以离线使用。(10年已废弃)
+
 第24题 怎么判断页面是否加载完成？
 第25题 说说 jsonp 原理
 第26题 说说你对Service worker的理解
