@@ -869,6 +869,27 @@ console.log("list ", target);
     }
 
 第22题 typeof 于 instanceof 区别
+
+    typeof操作符返回一个字符串,指示未经计算的操作数的类型。
+    如果我们想要判断一个变量是否存在，可以使用typeof：(不能使用if(a) 若a未声明，则报错)
+    typeof不能用于判断是否为数组，因为都会返回object
+    instanceof 运算符用来测试一个对象在其原型链中是否存在一个构造函数的 prototype 属性。
+    instanceof只能用来判断对象和函数，不能用来判断字符串和数字等
+    typeof会返回一个变量的基本类型,instanceof返回的是一个布尔值
+    
+    判断数组终极解决方案:
+
+    var arr = [1,2,3]; 
+    function isArrayFn(obj){  //封装一个函数
+    if (typeof Array.isArray === "function") { 
+    return Array.isArray(obj); //浏览器支持则使用isArray()方法
+    }else{                     
+    //否则使用toString方法
+    return Object.prototype.toString.call(obj) === "[object Array]"; 
+    } 
+    } 
+    alert(isArrayFn(arr));// true
+
 第23题 cookie和localSrorage、session、indexDB 的区别
 第24题 怎么判断页面是否加载完成？
 第25题 说说 jsonp 原理
