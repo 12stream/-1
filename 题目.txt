@@ -800,6 +800,74 @@ console.log("list ", target);
 
 
 第21题 请实现一个深拷贝
+
+  借用JSON对象的parse和stringify
+  function deepClone(obj){
+      let _obj = JSON.stringify(obj),
+          objClone = JSON.parse(_obj);
+      return objClone
+  }    
+  let a=[0,1,[2,3],4],
+  b=deepClone(a);
+  a[0]=1;
+  a[2][0]=1;
+  console.log(a,b);
+  
+  借用JQ的extend方法。
+  $.extend( [deep ], target, object1 [, objectN ] )
+
+  deep表示是否深拷贝，为true为深拷贝，为false，则为浅拷贝
+
+  target Object类型 目标对象，其他对象的成员属性将被附加到该对象上。
+
+  object1 objectN可选。 Object类型 第一个以及第N个被合并的对象。
+
+  let a=[0,1,[2,3],4],
+      b=$.extend(true,[],a);
+  a[0]=1;
+  a[2][0]=1;
+  console.log(a,b);
+  
+  
+  extend方法如下：
+  // 内部方法：用户合并一个或多个对象到第一个对象
+    // 参数：
+    // target 目标对象  对象都合并到target里
+    // source 合并对象
+    // deep 是否执行深度合并
+    function extend(target, source, deep) {
+        for (key in source)
+            if (deep && (isPlainObject(source[key]) || isArray(source[key]))) {
+                // source[key] 是对象，而 target[key] 不是对象， 则 target[key] = {} 初始化一下，否则递归会出错的
+                if (isPlainObject(source[key]) && !isPlainObject(target[key]))
+                    target[key] = {}
+
+                // source[key] 是数组，而 target[key] 不是数组，则 target[key] = [] 初始化一下，否则递归会出错的
+                if (isArray(source[key]) && !isArray(target[key]))
+                    target[key] = []
+                // 执行递归
+                extend(target[key], source[key], deep)
+            }
+            // 不满足以上条件，说明 source[key] 是一般的值类型，直接赋值给 target 就是了
+            else if (source[key] !== undefined) target[key] = source[key]
+    }
+
+    // Copy all but undefined properties from one or more
+    // objects to the `target` object.
+    $.extend = function(target){
+        var deep, args = slice.call(arguments, 1);
+
+        //第一个参数为boolean值时，表示是否深度合并
+        if (typeof target == 'boolean') {
+            deep = target;
+            //target取第二个参数
+            target = args.shift()
+        }
+        // 遍历后面的参数，都合并到target上
+        args.forEach(function(arg){ extend(target, arg, deep) })
+        return target
+    }
+
 第22题 typeof 于 instanceof 区别
 第23题 cookie和localSrorage、session、indexDB 的区别
 第24题 怎么判断页面是否加载完成？
