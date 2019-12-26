@@ -941,6 +941,27 @@ console.log("list ", target);
   4 － （完成）响应内容解析完成，可以在客户端调用了
 
 第25题 说说 jsonp 原理
+
+   1、浏览器的同源策略把跨域请求都禁止了；
+   2、HTML的<script>标签是例外，可以突破同源策略从其他来源获取数据；
+   3、由上可得，我们可以通过<script>标签引入jsonp文件，然后通过一系列JS操作获取数据。
+    jq
+     $.ajax({
+            dataType:'jsonp',
+            jsonp:'jsonp_callback',
+            url:'http://www.baidu.com/xxx.jsonp',
+            success:function(){
+                //dosomthing
+            }
+        });
+      js
+      function( url ) jsonHandle{
+        var script = document.createElement("script");
+        script.setAttribute("src",url);
+        document.getElementsByTagName("body")[0].appendChild(script);
+    }
+    //JS插入之后就可以处理数据了
+
 第26题 说说你对Service worker的理解
 第27题 说说浏览器缓存机制
 第28题 怎样选择合适的缓存策略
