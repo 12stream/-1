@@ -982,7 +982,23 @@ console.log("list ", target);
   缓存可以减少网络带宽消耗，降低服务器压力，减少网络延迟，加快页面打开速度
 
 第28题 怎样选择合适的缓存策略
+
+LocalStorage与sessionStorage主要的区别是存储时间和作用域。
+另外，严格来说localStorage更像cookie一类的本地数据存储。但是在标准缓存之外，开发人员可以用浏览器的一些功能来实现自定义的客户端“缓存”。
+对于构建可缓存站点
+同一个资源保证URL的稳定性
+给CSS、JS、图片等资源增加HTTP缓存头，并强制入口HTML不背缓存。
+减少对Cookie的依赖
+减少对HTTPS加密协议的使用
+多用GET方式请求动态Cgi。
+动态Cgi也是可以被缓存
+从而看业务需求，需要长期保留的可选择LocalStorage，cookie,下次进来不需要保存上次数据的
+可以考虑用sessionStorage
+
 第29题 说说重绘（Repaint）和回流（Reflow）
+
+
+
 第30题 如何优化图片
 第31题 页面首屏渲染性能优化方案有哪些
 第32题 浏览器性能问题-使用 Webpack 优化项目
