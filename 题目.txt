@@ -997,7 +997,12 @@ LocalStorage与sessionStorage主要的区别是存储时间和作用域。
 
 第29题 说说重绘（Repaint）和回流（Reflow）
 
-
+  回流也叫重排，叫回流是为了和重绘从字眼上更好区分
+  1.HTML代码转化成DOM Tree
+  2.CSS代码转化成CSSOM Tree（CSS Object Model）
+  3.结合DOM和CSSOM，生成一棵渲染树Render Tree
+  4.生成布局（flow），将所有渲染树进行平面合成（！此步骤再次触发即回流）
+  5.将布局绘制（paint）在屏幕上（！此步骤再次触发即重绘）
 
 第30题 如何优化图片
 第31题 页面首屏渲染性能优化方案有哪些
