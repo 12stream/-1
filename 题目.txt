@@ -1,0 +1,1307 @@
+第1题 谈谈变量提升？
+
+  变量提升的概念：函数和变量的声明会被js的解释器放到最上面。
+  js执行前有一个“预编译”过程
+  预编译主要有两个任务：
+  声明所有var变量（初始为undefined）。
+  解析定义式函数语句。
+  例子1：
+  function fn1() {
+      a = 2;
+      console.log(a); 
+      console.log(window.a); 
+      var a = 8;
+      console.log(a); 
+    }
+    fn1();
+    输出结果依次为：2 undefined 8，因为代码在解析的时候相当于
+
+      var a;//函数的声明会被解释器放到头部，预先声明，但没有赋值，所以在此刻a是undefined
+       a = 2;
+      console.log(a); 
+      console.log(window.a); //此处打印的是全局变量的a，但是并没有声明全局变量a
+      a = 8;
+      console.log(a); 
+     例子2：
+     //全局作用域下
+    a = 5;
+    //全局作用域下
+    var a = 5;
+    都在全局作用域下执行两端代码有何区别？
+
+    a=5相当于window.a=5。为全局window对象添加了一个属性a值为5
+    var a=5相当于在全局作用域中声明了变量a，在整个作用域中都有效
+    后者比前者多了一个声明的行为
+    前者没有变量提升过程，提前访问会报错，后者有变量提升
+
+
+第2题 说说bind、call、apply的 区别？
+
+  bind、call、apply三者都是用来改变函数的this对象的指向的，第一个参数都是this,是prototype的方法。
+  var xw = {
+         name : "小王",
+         gender : "男",
+         age : 24,
+         say : function(school,grade) {
+            alert(this.name + " , " + this.gender + " ,今年" + this.age + " ,在" + school + "上" + grade);                               
+         }
+  }
+  var xh = {
+        name : "小红",
+        gender : "女",
+        age : 18
+   }
+   xw.say();
+  对于call可以这样：
+    xw.say.call(xh,"实验小学","六年级");
+  对于apply可以这样：
+    xw.say.apply(xh,["实验小学","六年级郑州牛皮癣医"]);
+  而对于bind来说需要这样
+    xw.say.bind(xh,"实验小学","六年级")();或者xw.say.bind(xh)("实验小学","六年级");
+  从而可以看出call和apply都是对函数的直接调用，而bind方法返回的仍然是一个函数，因此后面还需要()来进行调用才可以。
+  call方法传入的是字符串，而apply方法传入的是一个数组，因为call()是apply()的语法糖；
+  需理解以下两个例子：
+  const xw = {
+        name : "小王",
+        gender : "男",
+        age : 24,
+        say() {
+            return this.name + " , " + this.gender + " ,今年" + this.age                               
+        }
+  }
+  console.log(xw.say());
+  //小王，男，今年24
+  const person = {
+        age: 20,
+        getAge() {
+          return this.age
+        }
+      }
+  const getAge = person.getAge
+  console.log(getAge())
+  //undefined
+  使用bind方法
+  const getAge = person.getAge.bind(person)
+  console.log(getAge())
+  //20
+
+第3题 如何实现一个 bind 函数？
+
+  来自MDN:bind的介绍：
+  bind()方法创建一个新的函数, 当被调用时，将其this关键字设置为提供的值，在调用新函数时，在任何提供之前提供一个给定的参数序列。
+  为什么要自己去实现一个bind函数？
+  因为bind()函数在 ECMA-262 第五版才被加入；它可能无法在所有浏览器上运行。
+  看下面一个例子：
+  function animal(name) {
+      this.name = name
+  }
+  let obj = {}
+
+  let cat = animal.bind(obj)
+  cat('lily')
+  console.log(obj.name)  //lily
+
+  let tom = new cat('tom')
+  console.log(obj.name)  //lily
+  console.log(tom.name)  //tom
+  结果发现，obj.name依然是lily而没有变成tom，所以就像MDN描述的那样，如果绑定函数cat是通过new操作符来创建实例对象的话，
+  this会指向创建的新对象tom，而不再固定绑定指定的对象obj。
+  
+  而bind函数的核心作用：绑定this、初始化参数。
+  语法：fun.bind(thisArg[, arg1[, arg2[, ...]]])
+  MDN:bind的实现如下：
+  if (!Function.prototype.bind) {
+  Function.prototype.bind = function(oThis) {
+    if (typeof this !== 'function') {
+      // closest thing possible to the ECMAScript 5
+      // internal IsCallable function
+      throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable');
+    }
+
+    var aArgs = Array.prototype.slice.call(arguments, 1),//这里的arguments是跟oThis一起传进来的实参
+      fToBind = this,
+      fNOP    = function() {},
+      fBound  = function() {
+        return fToBind.apply(this instanceof fNOP
+          ? this
+          : oThis,
+          // 获取调用时(fBound)的传参.bind 返回的函数入参往往是这么传递的
+          aArgs.concat(Array.prototype.slice.call(arguments)));
+      };
+
+    // 维护原型关系
+    if (this.prototype) {
+      // Function.prototype doesn't have a prototype property
+      fNOP.prototype = this.prototype;
+    }
+    fBound.prototype = new fNOP();
+
+    return fBound;
+  };
+}
+其中Array.prototype.slice.call(arguments)的意思是能将具有length属性的对象转成数组
+由于arguments是类数组对象，不拥有数组的slice方法，所以需要通过call来将slice的this指向arguments。args就是调用bind时传入的初始化参数
+（剔除了第一个参数oThis）。将args与绑定函数执行时的实参arguments通过concat连起来作为参数传入。
+  
+第4题 请实现一个 call 函数
+
+  实现思路：
+  1.改变this指向：可以将目标函数作为这个对象的属性
+  2.利用arguments类数组对象实现参数不定长
+  3.不能增加对象的属性，所以在结尾需要delete
+  es6实现：
+  Function.prototype.myCall = function (object, ...arg) {
+      if (this === Function.prototype) {
+          return undefined; // 用于防止 Function.prototype.myCall() 直接调用
+      }
+      let obj = Object(object) || window; // 加入这里没有参数，this则要指向window;
+      obj.fn = this; // 将this的指向函数本身；
+      obj.fn(...arg); // 对象上的方法，在调用时，this是指向对象的。
+      delete obj.fn; // 再删除obj的_fn_属性,去除影响.
+  }
+  es5实现：
+  Function.prototype.myCall = function(obj){
+    let arg = [];
+    for(let i = 1 ; i<arguments.length ; i++){
+        arg.push( 'arguments[' + i + ']' ) ;
+        // 这里要push 这行字符串  而不是直接push 值
+        // 因为直接push值会导致一些问题
+        // 例如: push一个数组 [1,2,3]
+        // 在下面 eval调用时,进行字符串拼接,JS为了将数组转换为字符串 ，
+        // 会去调用数组的toString()方法,变为 '1,2,3' 就不是一个数组了，相当于是3个参数.
+        // 而push这行字符串，eval方法，运行代码会自动去arguments里获取值
+    }
+    obj._fn_ = this;
+    eval( 'obj._fn_(' + arg + ')' ) // 字符串拼接，JS会调用arg数组的toString()方法，这样就传入了所有参数
+    delete obj._fn_;
+ } 
+
+第5题 如何实现一个 apply 函数？
+
+  对比call和apply之间的差别，就会发现，它们的实现原理只有一点点差别，那就是后面的参数不一样，apply的第二个参数是一个数组，
+  所以可以拿call的实现方法稍微改动一下就可以了
+  Function.prototype.myApply = function (object, arg) {
+    let obj = Object(object) || window; // 如果没有传this参数，this将指向window
+    obj.fn = this; // 将this的指向函数本身；
+    obj.fn(arg); // 这里不要将数组打散，而是将整个数组传进去;
+    delete obj.fn; // 再删除obj的_fn_属性,去除影响.
+  }
+
+第6题 简单说下原型链？
+
+  凡是对象都有原型，原型也是对象，也具有原型，也就是原型的原型，如此下去，会构成一个对象序列，该结构即为原型链。
+  简化为：
+  每个函数 function 都有一个prototype属性，即 显式原型
+  每个实例对象都有一个__proto__，可称为隐式原型
+  实例对象的隐式原型的值 === 其对应构造函数的显示原型的值
+  而原型链的别名为隐式原型链
+  当前对象的__proto__属性下的constructor属性的类型是当前对象的真实类型，那么当前对象的原型也就是构造函数
+  类型.prototype。根据此结论往下推到，__proto__属性里的__proto__属性里的constructor属性类型也就是__proto__原型对象的真实类型，
+  __proto__原型对象的原型对象也是构造函数.prototype。（__proto__对象的真实类型是Object，__proto__的原型对象是Object.prototype）        Object.prototype的原型对象是null，也就到头了。
+
+第7题 怎么判断对象类型？
+
+  toString实现，toString()是定义在Object.prototype上的实例方法，所有实例对象继承了该方法，其可以返回一个对象的字符串形式。
+  先看下面的情况
+  'abc'.toString(); // "abc"
+  [1,2].toString(); // "1,2"
+  new Date().toString(); // "Sun Mar 24 2019 16:08:58 GMT+0800"
+  然而很明显字符串、数组、Date等对象拥有自定义的toString方法，会覆盖Object.prototype.toString方法。
+  此时配合call()，改变toString方法执行时的所在的环境，可以得到对象的精确类型。
+  bject.prototype.toString.call('') // "[object String]"
+  Object.prototype.toString.call([]) // "[object Array]"
+  Object.prototype.toString.call(new Date()) // "[object Date]"
+
+第8题 说说箭头函数的特点
+
+  1.没有this
+  2.不能使用new 构造函数
+  3.不绑定arguments，用rest参数…解决
+  4.捕获其所在上下文的 this 值，作为自己的 this 值
+  5.箭头函数没有原型属性
+  6.箭头函数不能当做Generator函数,不能使用yield关键字
+  7.箭头函数不能换行
+  8.箭头函数写法更加简洁
+
+第9题 如何确定This指向
+
+  this指向，简单来说就是谁调用，this就指向谁。
+  此处this主要针对顶层对象为window进行阐述
+  分情况来，主要有以下五种
+  1.普通函数调用
+    function demo() {
+        console.log(this);  // window
+    }
+    demo();
+    当函数作为函数独立调用的时候，则是在全局环境中运行，this 则指向全局对象 window
+    此处demo 函数独立调用，所以 this 指向全局对象 window
+    再如：
+    function outer() {
+      function inner() {
+          console.log(this); // window
+      }
+      inner();
+    }
+    outer();
+    
+    function demo(func) {
+        func();
+    }
+    demo(function () {
+        console.log(this); // window
+    });
+    虽然在 outer 函数内部声明了一个 inner 函数，但实际上 inner 函数是独立调用的，所以依然是在全局环境，this仍然是指向了 window。
+    给demo函数传入一个匿名函数，执行匿名函数func的时候，依然是作为函数独立调用，所以this仍然指向window。
+    理解一下什么是作为函数独立调用：
+    当定义一个函数，例如var demo = function () {} 等号右边的函数是独立放在内存中的，然后赋予demo变量的指向为函数所在的内存地址，
+    当直接调用 demo()，相当于直接找到函数本身执行，所以函数内部创建的上下文为全局上下文，this 则指向了全局对象 window。
+    
+  2.对象方法调用
+    当调用一个对象方法时，this 代表了对象本身。
+    let obj = {
+        name: 'invoker',
+        getName: function () {
+            console.log(this);   // obj
+            console.log(this.name);  // "invoker"
+        }
+    }
+    obj.getName();
+    定义了一个 obj 对象，调用其内部的getName，this 则指向了 obj 对象。
+    稍微修改一下
+
+    var name = 'windowName';
+    let obj = {
+        name: 'invoker',
+        getName: function () {
+            console.log(this);  // window
+            console.log(this.name); // windowName
+        }
+    }
+ 
+    var getName = obj.getName;
+    getName();
+    当用一个变量 getName 接收 obj 对象的 getName方法， 再执行 getName，发现 this 指向了 window，因为此时变量 getName 直接指向了函数本身，
+    而不是通过 obj 去调用，此时就变成了函数独立调用的情况了。
+    再看个例子
+
+    let obj = {
+        test: function() {
+            function fn() {
+                console.log(this); // window
+            }
+            fn();
+        },
+        test1: function (fn) {
+            fn()
+        }
+    }
+
+    obj.test();
+    obj.test1(function () {
+        console.log(this) // window
+    });
+    虽然在 obj 对象的 test 方法内定义了 fn ，但执行时同样属于函数独立调用，所以 this 指向 window。
+    将函数作为参数传入 obj 的 test1 方法，也属于函数独立调用，this 同样指向 window。
+  3.构造函数调用
+    使用 new 关键字调用函数，则是构造函数调用，this 指向了该构造函数新创建的对象。
+
+    function person(name) {
+        this.name = name
+    }
+
+    let p = new person('invoker')
+    console.log(p.name) // 'invoker'
+    回顾一下 new 关键词的过程：
+
+    创建一个新的对象 obj
+    使得 obj 的 __proto__ 指向 构造函数的原型对象
+    执行构造函数中的 constructor，改变this的指向为 obj
+    如果结果是对象类型，则返回结果，否则返回obj
+    function myNew(Fn) {
+        let obj = {}
+        obj.__proto__ = Fn.prototype
+
+        const res = Fn.prototype.constructor.call(obj)
+        if (typeof res === 'object') {
+            obj = res
+        }
+
+        return obj
+    }
+  4.call、apply、bind
+    this 指向的是 call 、 apply、bind 调用时传递的第一个参数。
+
+    let obj = {
+        name: 'invoker'
+    }
+
+    function demo() {
+        console.log(this.name) // 'invoker'
+    }
+
+    demo.call(obj)
+    demo.apply(obj) 
+    demo.bind(obj)() 
+  5.箭头函数
+  箭头函数在执行时并不会创建自身的上下文，它的 this 取决于自身被定义的所在执行上下文。
+
+  例子：
+
+      let obj = {
+          fn: () => {
+              console.log(this) // window
+          }
+      }
+
+      obj.fn()
+  obj 的 fn 指向一个箭头函数，由于只有函数可以创建执行上下文，而箭头函数外部并没有包裹函数，所以箭头函数所在的执行上下文为全局的执行上下文，
+  this 指向 window
+
+  包裹一个函数看看呗？
+
+      let obj = {
+          fn: function () {
+              console.log('箭头函数所在执行上下文', this) // '箭头函数所在执行上下文' obj
+
+              var arrow = () => {
+                  console.log(this) //obj
+              }
+              arrow()
+          }
+      }
+
+      obj.fn()
+  箭头函数 arrow 被定义在 obj.fn 内，所以 fn 中的 this 就是 arrow 中的 this
+
+  箭头函数一次绑定上下文后便不可更改：
+
+      let obj = { name: 'invoker' }
+
+      var demo = () => {
+          console.log(this) // window
+      }
+
+      demo.call(obj)
+  虽然使用了 call 函数间接修改 this 的指向，但并不起作用。
+  
+  为什么会有this的设计
+  javascript中存在 this 的设计，跟其内存中的数据结构有关系。
+
+  假设定义 let obj = { name: 'invoker' }
+
+  此时会先生成一个对象 { name: 'invoker' } 并放在内存当中
+  将 { name: 'invoker } 所在的内存地址赋予 obj
+  所以 obj 其实就是个指向某个对象的地址，如果要读取 obj.name，则先要找到 obj 所在地址，然后从地址中拿到原始对象，读取 name 属性。
+
+  对象中每个属性都有一个属性描述对象：可通过 Object.getOwnPropertyDescriptor(obj, key) 来读取。
+  也就是说上面所说的 obj 的 name 属性实际是下面这样的
+
+  {
+    name: {
+      [[value]]: 'invoker',
+      [[configurable]]: true,
+      [[enumerable]]: true,
+      [[writable]]: true
+    }
+  }
+  value 就是获得的值。
+
+  现在假设对象的属性是一个函数：
+
+      let name = 'windowName'
+      let obj = {
+          name: 'invoker',
+          sayHello: function () {
+              console.log('my name is ' + this.name)
+          }
+      }
+
+      let descriptor = Object.getOwnPropertyDescriptor(obj, 'sayHello')
+      console.log(descriptor)
+
+      //这个sayHello的属性描述对象为:
+        sayHello: {
+          [[value]]: ƒ (),
+          [[configurable]]: true,
+          [[enumerable]]: true,
+          [[writable]]: true
+        }
+  sayHello 的 value 值是一个函数，这个时候，引擎会单独将这个函数放在 内存 当中，然后将函数的内存地址赋予 value。
+
+  因此可以得知，这个函数在 内存 中是单独的，并不被谁拥有，所以它可以在不同的上下文执行。
+
+  由于函数可以在不同上下文执行，所以需要一种机制去获取当前函数内部的执行上下文。所以，就有了 this，它指向了当前函数执行的上下文。
+
+  // 接着上面代码
+
+      obj.sayHello() // my name is invoker
+
+      let sayHello = obj.sayHello
+      sayHello() // my name is windowName
+  obj.sayHello() 是通过 obj 找到 sayHello，也就是对象方法调用，所以就是在 obj 环境执行。
+  当 let sayHello = obj.sayHello，变量 sayHello 就直接指向函数本身，所以 sayHello() 也就是函数独立调用，所以是全局环境执行。
+
+第10题 async、await 的优缺点
+  优点：
+  一个函数如果加上async，那么该函数就会返回一个Promise
+  相比直接使用Promise来说，优势在于处理then的调用链，能够更清晰准确的写出代码
+  缺点：
+  await将异步代码改造成了同步代码，如果多个异步代码没有依赖性却使用了await会导致性能上的降低。
+
+第11题 generator 原理
+  1.有 Generator next 函数的特性，next 函数运行后会返回如下结构：
+  { value: 'world', done: false }
+  或者
+  { value: undefined, done: true }
+  那么我们可以使用递归运行 next 函数，如果 done 为 true 则停止 next 函数的运行
+  2.yield 表达式本身没有返回值，或者说总是返回 undefined。
+  next 方法可以带一个参数，该参数就会被当作上一个 yield 表达式的返回值。
+  由于 next 方法的参数表示上一个 yield 表达式的返回值，所以在第一次使用 next 方法时，传递参数是无效的。
+  function* test() {
+    const a = yield "a"
+    console.log(a)
+    return true
+  }
+  const gen = test()
+  // 第一次 next() 会卡在 yield a 中，next 返回 {value: "a", done: false}
+  // 第一个 next() 函数的参数是无效的，无需传递
+  const nextOne = gen.next() 
+  // 传递参数 nextOne.value
+  // test 函数中的 console.log 输出 'a'
+  // 第二次的 next() 返回值为 {value: true, done: true}
+  gen.next(nextOne.value)
+  3.gen.throw(exception) 可以抛出异常，并恢复生成器的执行（前提需要 try catch yield 语句），返回带有 done 及 value 两个属性的对象。
+  而且该异常可以通过 try...catch 块进行捕获。那么我们可以通过 gen.throw 抛出 Promise 错误，这样就可以使用 try catch 拦截 Promise 的错误了。
+  function* gen() {
+    let a
+    try {
+      a = yield 42
+    } catch (e) {
+      console.log('Error caught!')
+    }
+    console.log(a)
+    yield 33
+  }
+
+  var g = gen()
+  g.next() // { value: 42, done: false }
+  g.throw(new Error('Something went wrong')) // "Error caught!"
+
+第12题 对Promise的理解
+
+  Promise 是异步编程的一种解决方案
+  Promise就是一个构造函数（函数也是对象）
+  Promise的三种状态:
+  fulfilled：满足，成功
+  rejected：拒绝，失败
+  pending：初始状态
+  注：settled是指fulfilled，rejected状态之一。
+  一般resolve，reject函数被调用时分别将Promise状态设置为fulfilled，rejected
+  因为Promise.prototype.then方法和Promise.prototype.catch方法都返回Promise对象。所以可以链式调用:
+  myPromise.then(xxx).then(xxx);
+
+第13题 == 和 ===区别，什么情况用 ==
+
+  ==是关系运算符; ===是全等运算符
+  ==是判断值是否相等, 
+  ===是判断值及类型是否完全相等。
+  ==比较时会进行类型转换，===则不会
+  在你清楚自己在比较什么的情况使用==
+  如判断对象的属性是否存在 ==null，判断函数的参数是否存在==null
+  比较字符串和数字,尽量不用==而使用===
+
+第14题 垃圾回收 新生代算法，老生代算法
+
+ 垃圾回收：
+ 一般来说没有被引用的对象就是垃圾，就是要被清除， 有个例外如果几个对象引用形成一个环，互相引用，但根访问不到它们，
+  这几个对象也是垃圾，也要被清除。
+  通过标记-清除 算法
+   Js具有自动垃圾回收机制。垃圾收集器会按照固定的时间间隔周期性的执行。
+
+  JS中最常见的垃圾回收方式是标记清除。
+
+  工作原理：是当变量进入环境时，将这个变量标记为“进入环境”。当变量离开环境时，则将其标记为“离开环境”。标记“离开环境”的就回收内存。
+
+  工作流程：
+
+  1.    垃圾回收器，在运行的时候会给存储在内存中的所有变量都加上标记。
+
+  2.    去掉环境中的变量以及被环境中的变量引用的变量的标记。
+
+  3.    再被加上标记的会被视为准备删除的变量。
+
+  4.    垃圾回收器完成内存清除工作，销毁那些带标记的值并回收他们所占用的内存空间。
+
+  引用计数 方式
+
+  工作原理：跟踪记录每个值被引用的次数。
+
+  工作流程：
+
+  1.    声明了一个变量并将一个引用类型的值赋值给这个变量，这个引用类型值的引用次数就是1。
+
+  2.    同一个值又被赋值给另一个变量，这个引用类型值的引用次数加1.
+
+  3.    当包含这个引用类型值的变量又被赋值成另一个值了，那么这个引用类型值的引用次数减1.
+
+  4.    当引用次数变成0时，说明没办法访问这个值了。
+
+  5.    当垃圾收集器下一次运行时，它就会释放引用次数是0的值所占的内存。
+
+  但是循环引用的时候就会释放不掉内存。循环引用就是对象A中包含另一个指向对象B的指针，B中也包含一个指向A的引用。
+
+  因为IE中的BOM、DOM的实现使用了COM，而COM对象使用的垃圾收集机制是引用计数策略。所以会存在循环引用的问题。
+
+  解决：手工断开js对象和DOM之间的链接。赋值为null。IE9把DOM和BOM转换成真正的JS对象了，所以避免了这个问题。
+
+  什么情况会引起内存泄漏？
+  虽然有垃圾回收机制但是我们编写代码操作不当还是会造成内存泄漏。
+
+  1.    意外的全局变量引起的内存泄漏。
+
+  原因：全局变量，不会被回收。
+
+  解决：使用严格模式避免。
+
+  2.    闭包引起的内存泄漏
+
+  原因：闭包可以维持函数内局部变量，使其得不到释放。
+
+  解决：将事件处理函数定义在外部，解除闭包,或者在定义事件处理函数的外部函数中，删除对dom的引用。
+
+  3.    没有清理的DOM元素引用
+
+  原因：虽然别的地方删除了，但是对象中还存在对dom的引用
+
+  解决：手动删除。
+
+  4.    被遗忘的定时器或者回调
+
+  原因：定时器中有dom的引用，即使dom删除了，但是定时器还在，所以内存中还是有这个dom。
+
+  解决：手动删除定时器和dom。
+
+  5.    子元素存在引用引起的内存泄漏
+
+  原因：div中的ul li  得到这个div，会间接引用某个得到的li，那么此时因为div间接引用li，即使li被清空，也还是在内存中，
+  并且只要li不被删除，他的父元素都不会被删除。
+
+  解决：手动删除清空。
+
+
+
+  什么放在内存中？什么不放在内存中？
+  基本类型是：Undefined/Null/Boolean/Number/String
+
+  基本类型的值存在内存中，被保存在栈内存中。从一个变量向另一个变量复制基本类型的值，会创建这个值的一个副本。
+
+  引用类型：object
+
+  引用类型的值是对象，保存在堆内存中。
+
+  1.    包含引用类型值的变量实际上包含的并不是对象本身，而是一个指向该对象的指针。从一个变量向另一个变量复制引用类型的值，
+  复制的其实是指针，因此两个变量最终都指向同一个对象。
+
+  2.    js不允许直接访问内存中的位置，也就是不能直接访问操作对象的内存空间。在操作对象时，实际上是在操作对象的引用而不是实际的对象。
+
+
+
+  栈和堆的区别
+    一、堆栈空间分配区别：
+    1、栈（操作系统）：由操作系统自动分配释放 ，存放函数的参数值，局部变量的值等。其操作方式类似于数据结构中的栈；
+    2、堆（操作系统）： 一般由程序员分配释放，若程序员不释放，程序结束时可能由OS回收，分配方式倒是类似于链表。
+    二、堆栈缓存方式区别：
+    1、栈使用的是一级缓存， 他们通常都是被调用时处于存储空间中，调用完毕立即释放；
+    2、堆是存放在二级缓存中，生命周期由虚拟机的垃圾回收算法来决定（并不是一旦成为孤儿对象就能被回收）。
+    所以调用这些对象的速度要相对来得低一些。
+    三、堆栈数据结构区别：
+    堆（数据结构）：堆可以被看成是一棵树，如：堆排序；
+    栈（数据结构）：一种先进后出的数据结构。
+新生代算法：
+  所谓新生代，指的是新产生的对象。
+  1. 我们维护一个列表，老生代对象每次指向一个新生对象的时候，记录下来；每次删除指向的时候，删除记录。
+  （这样我们就知道新生代对象里面， 哪些对象是存活的了）
+
+  2. 我们把新生代对象的内存平均分开 2 份空间From 和 To 
+
+  3. 每当有新生对象诞生，就会在 From 空间出现
+
+  4. 一旦 From 空间被占满，就触发 Scavenge GC
+
+  5. 根据维护的列表，我们从 From 空间拿出存活的对象，复制到 To 空间
+
+  6. 清空 From 空间 （这样就可以实现把不活跃的对象给回收掉）
+
+  7. From To 空间角色互换，开始下一轮循环
+老生代算法：
+  老生代就是经历过新生代垃圾回收后还“存活”下来的对象。
+
+第15题 说说你对闭包的理解
+
+  闭包，简单而言就是方法里面包含方法，有权访问另一个函数作用域中的变量的函数。
+  闭包是在函数被调用执行的时候才被确认创建的。
+  闭包的形成，与作用域链的访问顺序有直接关系。
+  只有内部函数访问了上层作用域链中的变量对象时，才会形成闭包，因此，我们可以利用闭包来访问函数内部的变量
+
+第16题 基本数据类型和引用数据类型在存储上的差别
+
+  1、声明变量时内存分配不同
+
+　*原始类型：在栈中，因为占据空间是固定的，可以将他们存在较小的内存中-栈中，这样便于迅速查询变量的值
+
+　*引用类型：存在堆中，栈中存储的变量，只是用来查找堆中的引用地址。
+
+　   这是因为：引用值的大小会改变，所以不能把它放在栈中，否则会降低变量查寻的速度。相反，放在变量的栈空间中的值是
+    该对象存储在堆中的地址。地址的大小是固定的，所以把它存储在栈中对变量性能无任何负面影响
+
+2、不同的内存分配带来不同的访问机制
+
+    在javascript中是不允许直接访问保存在堆内存中的对象的，所以在访问一个对象时，首先得到的是这个对象在堆内
+    存中的地址，然后再按照这个地址去获得这个对象中的值，这就是传说中的按引用访问。
+
+    而原始类型的值则是可以直接访问到的。
+
+3、复制变量时的不同
+
+ 1）原始值：在将一个保存着原始值的变量复制给另一个变量时，会将原始值的副本赋值给新变量，此后这两个变量是完全独
+ 立的，他们只是拥有相同的value而已。
+
+2）引用值：在将一个保存着对象内存地址的变量复制给另一个变量时，会把这个内存地址赋值给新变量，
+
+　　　　也就是说这两个变量都指向了堆内存中的同一个对象，他们中任何一个作出的改变都会反映在另一个身上。
+　　　　（这里要理解的一点就是，复制对象时并不会在堆内存中新生成一个一模一样的对象，只是多了一个保存指向这个
+    对象指针的变量罢了）。多了一个指针
+4、参数传递的不同（把实参复制给形参的过程）
+首先我们应该明确一点：ECMAScript中所有函数的参数都是按值来传递的。
+　　但是为什么涉及到原始类型与引用类型的值时仍然有区别呢？还不就是因为内存分配时的差别。 　
+　　1）原始值：只是把变量里的值传递给参数，之后参数和这个变量互不影响。
+　　2）引用值：对象变量它里面的值是这个对象在堆内存中的内存地址，这一点你要时刻铭记在心！
+　　　　因此它传递的值也就是这个内存地址，这也就是为什么函数内部对这个参数的修改会体现在外部的原因了，因为它们都指向同一个对象。
+
+第17题 浏览器 Eventloop 和 Node 中的有什么区别
+
+  浏览器环境下，microtask 的任务队列是每个 macrotask 执行完之后执行。而在 Node.js 中，microtask 会在事件循环的各个阶段之间执行，
+  也就是一个阶段执行完毕，就会去执行 microtask 队列的任务。
+  看下面一个列子：
+  setTimeout(()=>{
+        console.log('timer1')
+        Promise.resolve().then(function() {
+            console.log('promise1')
+        })
+    }, 0)
+    setTimeout(()=>{
+        console.log('timer2')
+        Promise.resolve().then(function() {
+            console.log('promise2')
+        })
+    }, 0)
+    浏览器端运行结果：timer1=>promise1=>timer2=>promise2
+    Node 端运行结果：timer1=>timer2=>promise1=>promise2
+
+第18题 怎样理解setTimeout 执行误差
+
+  浏览器时钟精度
+    浏览器的时钟精度就是浏览器更新时钟的频率。更新的越频繁，那么时间也就越准确。
+
+    现在浏览器的最小精度为4ms，但并不意味着频率时刻保持在4ms。仔细分析一下，“更新操作”对电脑来说是比较烧脑的，
+    脑子稍微差点的cpu反应慢，精度就低。事实上，除了cpu硬件之外，操作系统（OSX和windows下不同）以及浏览器内核
+    都会影响到浏览器的精度；其次，电脑本身的调节机制，尤其是笔记本。笔记本在使用电池供电的时候，精度就会被自动
+    降低从而达到保护电源的作用。所以最小精度4ms只是当今浏览器的最高水平，显示情况下是不会达到这一精度。
+
+    延时函数的不准确性
+    在人类的眼中或许感觉不到setTimeout()和setInterval()存在误差，毕竟ms级的时间太短暂了。但事实上确实存在着误差。
+    下面来讲误差从何而来。
+
+    setTimeout(fn,15ms);
+    我们先设置了这样一个延时处理的函数，fn函数被添加到队列当中，预计15ms之后执行。
+    过去的浏览器时间精度在10ms~15.6ms之间已经是极限了，那么我们就假设我们使用的浏览器的时间精度为10ms。
+
+    函数等待时间    |--------------| 15ms
+    浏览器刷新      |--------||----------| 20ms
+
+    当第一个10ms之后，浏览器刷新了时间，发现“我靠，跑了这么久，还没有到点”，于是又发动第二次刷新。第二次刷新结束
+    之后，20ms已经过去了，函数才到了执行期，并且比预期要多等了5ms。
+
+    我们知道，浏览器执行js和更新界面是共用一个线程的，当线程空闲时，它会从任务队列中取任务来运行。所以当函数到
+    了执行期时，它会被添加到队列当中，但是不一定立即执行，如果队列中还有其他任务，单线程的规则就会导致这个函数需要
+    等待前面的任务执行完才可以执行。
+
+    基于这两点原因，setTimeout()和setInteval()在微世界中，其实并不守时，这是无法控制且无奈的事情。
+
+第19题 说说函数节流和防抖
+
+  节流：在指定时间之内，让函数只触发一次。 
+  防抖：对于一定时间段的连续的函数调用，只让其执行一次。
+  节流
+
+  节流实现起来很好理解，设置一个bool值，在时间阀之内，根据这个bool来判断是否执行函数。
+
+  function throttle(fn,times = 300){
+      let bool = true
+      return function(){
+          if(!bool){
+              return false
+          }
+          bool = false
+          setTimeout(()=>{
+              bool = true
+              fn.apply(this,arguments)
+          },times)
+      }
+  }
+  另外一种写法：
+    function throttle(fn,delay = 300){
+      let lastTime = 0;
+      return function(){
+        let nowTime = new Date();
+        setTimeout(function(){
+          if(nowTime - lastTime > delay){
+            fn.apply(this,arguments);
+            lastTime = nowTime;
+          }
+        },delay)
+      }
+    }  
+    
+  防抖
+
+  防抖实现起来的思路是，用闭包保存执行的函数，多次执行的时候把上一个执行的函数清除掉，然后再次创建一个新的函数。
+  这样在间隔时间内还有事件触发的话，不会执行之前的函数，这么一来，函数真正的执行就是最后一次事件触发。
+
+  function debounce(fn,times){
+      let timeout = null
+      return function(){
+          clearTimeout(timeout)
+          timeout = setTimeout(()=>{
+              fn.apply(this,arguments)
+          },times)
+      }
+  }
+
+第20题 数组降维
+
+  多维数组转一维数组
+  function flattenArray(list, target) {
+  const len = list.length;
+  for(let i = 0; i < len; i++) {
+    if (list[i] instanceof Array) {
+      flattenArray(list[i], target);
+    } else {
+      target && target.push(list[i]);
+    }
+  }
+}
+
+let target = new Array();
+const list = [1, [3, [4, [6, 7]], 5], 2];
+flattenArray(list, target);
+console.log("list ", target);
+在es6中flat()方法也可以实现
+
+
+第21题 请实现一个深拷贝
+
+  借用JSON对象的parse和stringify
+  function deepClone(obj){
+      let _obj = JSON.stringify(obj),
+          objClone = JSON.parse(_obj);
+      return objClone
+  }    
+  let a=[0,1,[2,3],4],
+  b=deepClone(a);
+  a[0]=1;
+  a[2][0]=1;
+  console.log(a,b);
+  
+  借用JQ的extend方法。
+  $.extend( [deep ], target, object1 [, objectN ] )
+
+  deep表示是否深拷贝，为true为深拷贝，为false，则为浅拷贝
+
+  target Object类型 目标对象，其他对象的成员属性将被附加到该对象上。
+
+  object1 objectN可选。 Object类型 第一个以及第N个被合并的对象。
+
+  let a=[0,1,[2,3],4],
+      b=$.extend(true,[],a);
+  a[0]=1;
+  a[2][0]=1;
+  console.log(a,b);
+  
+  
+  extend方法如下：
+  // 内部方法：用户合并一个或多个对象到第一个对象
+    // 参数：
+    // target 目标对象  对象都合并到target里
+    // source 合并对象
+    // deep 是否执行深度合并
+    function extend(target, source, deep) {
+        for (key in source)
+            if (deep && (isPlainObject(source[key]) || isArray(source[key]))) {
+                // source[key] 是对象，而 target[key] 不是对象， 则 target[key] = {} 初始化一下，否则递归会出错的
+                if (isPlainObject(source[key]) && !isPlainObject(target[key]))
+                    target[key] = {}
+
+                // source[key] 是数组，而 target[key] 不是数组，则 target[key] = [] 初始化一下，否则递归会出错的
+                if (isArray(source[key]) && !isArray(target[key]))
+                    target[key] = []
+                // 执行递归
+                extend(target[key], source[key], deep)
+            }
+            // 不满足以上条件，说明 source[key] 是一般的值类型，直接赋值给 target 就是了
+            else if (source[key] !== undefined) target[key] = source[key]
+    }
+
+    // Copy all but undefined properties from one or more
+    // objects to the `target` object.
+    $.extend = function(target){
+        var deep, args = slice.call(arguments, 1);
+
+        //第一个参数为boolean值时，表示是否深度合并
+        if (typeof target == 'boolean') {
+            deep = target;
+            //target取第二个参数
+            target = args.shift()
+        }
+        // 遍历后面的参数，都合并到target上
+        args.forEach(function(arg){ extend(target, arg, deep) })
+        return target
+    }
+
+第22题 typeof 于 instanceof 区别
+
+    typeof操作符返回一个字符串,指示未经计算的操作数的类型。
+    如果我们想要判断一个变量是否存在，可以使用typeof：(不能使用if(a) 若a未声明，则报错)
+    typeof不能用于判断是否为数组，因为都会返回object
+    instanceof 运算符用来测试一个对象在其原型链中是否存在一个构造函数的 prototype 属性。
+    instanceof只能用来判断对象和函数，不能用来判断字符串和数字等
+    typeof会返回一个变量的基本类型,instanceof返回的是一个布尔值
+    
+    判断数组终极解决方案:
+
+    var arr = [1,2,3]; 
+    function isArrayFn(obj){  //封装一个函数
+    if (typeof Array.isArray === "function") { 
+    return Array.isArray(obj); //浏览器支持则使用isArray()方法
+    }else{                     
+    //否则使用toString方法
+    return Object.prototype.toString.call(obj) === "[object Array]"; 
+    } 
+    } 
+    alert(isArrayFn(arr));// true
+
+第23题 cookie和web Storage、session、indexDB 的区别
+
+  cookie数据存放在客户的浏览器上
+  cookie不是很安全，别人可以分析存放在本地的cookie并进行cookie欺骗
+  cookie中保存的是字符串 
+  单个cookie保存的数*据不能超过4K，很多浏览器都限制一个站点最多保存20个cookie 
+  cookie中如果设置了路径参数，那么同一个网站中不同路径下的cookie互相是访问不到的*
+  cookie的作用是与服务器进行交互，作为http规范的一部分而存在的，而web Storage仅仅是为了在本地“存储”数据而生 
+  cookie：只在设置的cookie过期时间之前有效，即使窗口关闭或浏览器关闭 
+  sessionStorage、localStorage、cookie都是在浏览器端存储的数据
+  其中sessionStorage的概念很特别，引入了一个“浏览器窗口”的概念，sessionStorage是在同源的同窗口中，
+  始终存在的数据，也就是说只要这个浏览器窗口没有关闭，即使刷新页面或进入同源另一个页面，数据仍然存在，
+  关闭窗口后，sessionStorage就会被销毁，同时“独立”打开的不同窗口，即使是同一页面，sessionStorage对象也是不同的
+  sessionStorage和localStorage存储大小可以达到5M或更大 
+  localStorage：始终有效，窗口或浏览器关闭也一直保存，因此用作持久数据
+  session数据放在服务器上
+  session会在一定时间内保存在服务器上，当访问增多，会比较占用你服务器的性能
+  session中保存的是对象
+  session不能区分路径，同一个用户在访问一个网站期间，所有的session在任何一个地方都可以访问到
+  IndexedDB是一种使用浏览器存储大量数据的方法，它创造的数据可以被查询，并且可以离线使用。(10年已废弃)
+
+第24题 怎么判断页面是否加载完成？
+
+  用document.onreadystatechange的方法来监听状态改变， 
+  然后用document.readyState == “complete”判断是否加载完成 
+  代码如下： 
+  复制代码 代码如下:
+
+  document.onreadystatechange = subSomething;//当页面加载状态改变的时候执行这个方法. 
+  function subSomething() 
+  { 
+  if(document.readyState == “complete”) //当页面加载状态 
+  myform.submit(); //表单提交 
+  } 
+
+  页面加载readyState的五种状态 
+  原文如下: 
+  0: (Uninitialized) the send( ) method has not yet been invoked. 
+  1: (Loading) the send( ) method has been invoked, request in progress. 
+  2: (Loaded) the send( ) method has completed, entire response received. 
+  3: (Interactive) the response is being parsed. 
+  4: (Completed) the response has been parsed, is ready for harvesting. 
+
+  翻译成中文为: 
+  0 － （未初始化）还没有调用send()方法 
+  1 － （载入）已调用send()方法，正在发送请求 
+  2 － （载入完成）send()方法执行完成，已经接收到全部响应内容 
+  3 － （交互）正在解析响应内容 
+  4 － （完成）响应内容解析完成，可以在客户端调用了
+
+第25题 说说 jsonp 原理
+
+   1、浏览器的同源策略把跨域请求都禁止了；
+   2、HTML的<script>标签是例外，可以突破同源策略从其他来源获取数据；
+   3、由上可得，我们可以通过<script>标签引入jsonp文件，然后通过一系列JS操作获取数据。
+    jq
+     $.ajax({
+            dataType:'jsonp',
+            jsonp:'jsonp_callback',
+            url:'http://www.baidu.com/xxx.jsonp',
+            success:function(){
+                //dosomthing
+            }
+        });
+      js
+      function( url ) jsonHandle{
+        var script = document.createElement("script");
+        script.setAttribute("src",url);
+        document.getElementsByTagName("body")[0].appendChild(script);
+    }
+    //JS插入之后就可以处理数据了
+
+第26题 说说你对Service worker的理解
+
+   Service workers 基本上充当应用同服务器之间的代理服务器，可以用于拦截请求，也就意味着可以在离线环境下响应请求，
+   从而提供更好的离线体验。同时，它还可以接收服务器推送和后台同步 API。
+
+第27题 说说浏览器缓存机制
+
+  浏览器的缓存机制也就是我们说的HTTP缓存机制，其机制是根据HTTP报文的缓存标识进行的
+  浏览器与服务器通信的方式为应答模式，即是：浏览器发起HTTP请求 – 服务器响应该请求。
+  缓存的类型强缓存和协商缓存。两者区别是，强缓存不会向服务器发请求，而协商缓存会发请求，
+  匹配成功返回304 Not Modified，匹配不成功返回200；
+  浏览器会先校验强缓存，若强缓存未命中，再进行协商缓存校验。
+  ETag的优先级高于Last-Modified，因此协商缓存中服务器会优先判断ETag的值；
+  F5刷新，会跳过强缓存校验，直接进行协商缓存校验；Ctrl+F5刷新，会跳过强缓存和协商缓存校验，直接向服务器请求数据。
+  内存缓存(from memory cache)：内存缓存具有两个特点，分别是快速读取和时效性：
+  用户也许在用浏览器浏览信息时，经常使用"返回"和"后退"的浏览功能，调用你以前阅读过的页面，
+  这时，你会发现显示速度是很快的，其实这些你刚调出来的内容就放在计算机的缓存中
+  缓存可以减少网络带宽消耗，降低服务器压力，减少网络延迟，加快页面打开速度
+
+第28题 怎样选择合适的缓存策略
+
+LocalStorage与sessionStorage主要的区别是存储时间和作用域。
+另外，严格来说localStorage更像cookie一类的本地数据存储。但是在标准缓存之外，开发人员可以用浏览器的一些功能来实现自定义的客户端“缓存”。
+对于构建可缓存站点
+同一个资源保证URL的稳定性
+给CSS、JS、图片等资源增加HTTP缓存头，并强制入口HTML不背缓存。
+减少对Cookie的依赖
+减少对HTTPS加密协议的使用
+多用GET方式请求动态Cgi。
+动态Cgi也是可以被缓存
+从而看业务需求，需要长期保留的可选择LocalStorage，cookie,下次进来不需要保存上次数据的
+可以考虑用sessionStorage
+
+第29题 说说重绘（Repaint）和回流（Reflow）
+
+  回流也叫重排，叫回流是为了和重绘从字眼上更好区分
+  1.HTML代码转化成DOM Tree
+  2.CSS代码转化成CSSOM Tree（CSS Object Model）
+  3.结合DOM和CSSOM，生成一棵渲染树Render Tree
+  4.生成布局（flow），将所有渲染树进行平面合成（此步骤再次触发即回流，如增加边框等改变了布局。）
+  5.将布局绘制（paint）在屏幕上（此步骤再次触发即重绘，如颜色背景等不会引起页面布局变化）
+
+第30题 如何优化图片
+
+  图片质量压缩,使得图片在不失真的情况下，尽量减小图片大小
+  雪碧图又名精灵图，把小图标整合在一张图里面，减少图片的网络请求
+  base64图片，不需要发送网络请求直接解析，这样就可以达到减少网络请求的目的，尽量针对小图片，对于大图片得不尝失
+  css替换简单图标，例如箭头
+  响应式图片加载，根据屏幕的大小，加载不同大小的图片
+  图片懒加载的目的就是为加快页面加载速度而做的
+
+第31题 页面首屏渲染性能优化方案有哪些
+第32题 浏览器性能问题-使用 Webpack 优化项目
+第33题 Babel 原理
+第34题 介绍下React 生命周期
+第35题 react setState 机制
+第36题 Vue的 nextTick 原理
+第37题 Vue 生命周期
+第38题 Vue 双向绑定
+第39题 v-model原理
+第40题 watch 和 computed 的区别和运用的场景
+第41题 Vue 的父子通信
+第42题 简述路由原理
+第43题 MVVM-脏数据检测
+第44题 MVVM-数据劫持
+第45题 React V16 生命周期函数用法
+第46题 Vue 和 React 区别
+第47题 介绍下虚拟 DOM，对虚拟 DOM 的理解
+第48题 路由鉴权
+第49题 TCP 3次握手
+第50题 TCP 拥塞控制
+第51题 慢开始算法
+第52题 拥塞避免算法
+第53题 tcp 快速重传
+第54题 TCP New Ren 改进后的快恢复
+第55题 HTTPS 握手
+第56题 从输入 URL 到页面加载全过程
+第57题 HTTP 常用状态码 301 302 304 403
+第58题 常见排序-冒泡排序
+第59题 常见排序-插入排序
+第60题 常见排序-选择排序
+第61题 常见排序-归并排序
+第62题 常见排序-快排
+第63题 常见排序-堆排序
+第64题 常见排序-系统自带排序实现
+第65题 介绍下设计模式-工厂模式
+第66题 介绍下设计模式-单例模式
+第67题 介绍下设计模式-适配器模式
+第68题 介绍下设计模式-装饰模式
+第69题 介绍下设计模式-代理模式
+第70题 介绍下设计模式-发布-订阅模式
+第71题 Vue 响应式原理
+第72题 实现一个new操作符
+第73题 实现一个JSON.stringify
+第74题 实现一个JSON.parse
+第75题 手写一个继承
+第76题 实现一个JS函数柯里化
+第77题 请手写一个Promise(中高级必考)
+第78题 手写防抖(Debouncing)和节流(Throttling)
+第79题 实现一个instanceOf
+第80题 实现一个私有变量
+第81题 使用setTimeout代替setInterval进行间歇调用
+第82题 数组中的forEach和map的区别
+第83题 for in和for of的区别
+第84题 写一个发布订阅 EventEmitter方法
+第85题 let、var、const区别
+第86题 typeof和instanceof 区别
+第87题 常见的继承的几种方法
+第88题 常见的浏览器内核有哪些?
+第89题 浏览器的主要组成部分是什么？
+第90题 浏览器是如何渲染UI的？
+第91题 浏览器如何解析css选择器？
+第92题 DOM Tree是如何构建的？
+第93题 重绘与重排的区别？
+第94题 如何触发重排和重绘？
+第95题 如何避免重绘或者重排？
+第96题 前端如何实现即时通讯？
+第97题 什么是浏览器同源策略？
+第98题 怎样解决跨域问题？
+第99题 时间格式化
+第100题 说说对html 语义化的理解
+第101题 说说常用的 meta 标签
+第102题 说说两种盒模型以及区别
+第103题 css reset 和 normalize.css 有什么区别
+第104题 怎样让元素水平垂直居中
+第105题 说说选择器的权重计算方式
+第106题 清除浮动的方
+第107题 express和koa的对比，两者中间件的原理，koa捕获异常多种情况说一下
+第108题 你项目里用到第三方登录涉及的oAuth(JWT)协议的实现原理，以及你本地的实现原理，第三方登录怎么样保证安全性
+第109题 说下快排完整性
+第110题 react和vue的区别，你开发如何选择技术栈
+第111题 express里面登录的session服务怎么样实现分布式服务
+第112题 vue的理解
+第113题 vue的双向数据绑定的原理
+第114题 vue怎么样实现数组绑定
+第115题 js的继承
+第116题 call和apply的区别
+第117题 ajax是同步还是异步，怎么样实现同步
+第118题 ajax实现过程
+第119题 闭包的作用理解，以及那些地方用过闭包，以及闭包的缺点，如何实现闭包
+第120题 跨域方法以及怎么样实现的与原理
+第121题 工作中做的项目有什么亮点
+第122题 webpack工程构建工具怎么样用
+第123题 数组去重
+第124题 快排和冒泡原理
+第125题 http状态码
+第126题 nodejs了解多少
+第127题 为什么css样式初始化，目的是为了什么
+第128题 为什么浏览器会产生同源策略
+第129题 axios有什么特点
+第130题 cookie和webstrage的区别以及cookie怎么样使用？原生cookie怎么样封装，cookie有什么限制
+第131题 三次握手
+第132题 对跨域了解吗。jsonp的限制
+第133题 浏览器那些地方用到了异步
+第134题 css弹性布局，那些地方用到过
+第135题 position属性有哪些值，分别有什么含义
+第136题 ES6用过吗，新增了那些东西，你用到过什么
+第137题 const和let的区别，可以改变const定义对象某个属性吗
+第138题 箭头函数，箭头函数的特点
+第139题 js的this理解， 如何改变this的指向
+第140题 js的事件机制
+第141题 settimeout的机制
+第142题 遇到过兼容性的问题吗，要如何处理
+第143题 项目中使用过构建工具吗
+第144题 平时如何学习前端的，最近在看的一本书
+第145题 内存泄露的排除定位和解决方法
+第146题 垃圾回收机制
+第147题 websocket实现原理
+第148题 http状态码301 302的区别，304是啥
+第149题 缓存机制，协商协议
+第150题 定时器setTimeout的运行机制
+第151题 事件循环机制 eventloop
+第152题 异步es5 es6 es7分别怎么样解决
+第153题 js的继承的实现方法
+第154题 清除浮动的方法
+第155题 常见布局的方法
+第156题 从输入一个url到浏览器页面展示都经历了哪些过程
+第157题 new生成了一个对象的过程（核心return this）
+第158题 请简单说明什么是事件冒泡和事件捕获以及事件委托
+第159题 实现一个两边宽度固定中间自适应的三列布局，圣杯布局，双飞燕
+第160题 flex布局有没有了解
+第161题 请简述一下js原型链
+第162题 es6有了解吗，请简单说一下promise机制，异步的承诺机制，顺势说一下解决回调地狱的问题
+第163题 手写一下深拷贝，答案提示：JSON.parse(JSON.stringify(obj)) 用JSON实现深拷贝
+第164题 typeof null的结果是什么
+第165题 同步和异步的执行顺序
+第166题 get和post的请求区别
+第167题 什么情况算是跨域，如何解决跨域问题
+第168题 一个有序的数组如何进行查找操作
+第169题 手写一个快速排序
+第170题 事件委托理解，原理，好处，应用场景
+第171题 前端框架用过什么？
+第172题 vue和react的区别
+第173题 vue的原理
+第174题 闭包
+第175题 let和var的区别，let的产生背景？
+第176题 定宽定高，如何垂直居中，那不定宽定高呢？
+第177题 https的请求过程
+第178题 代码规范
+第179题 项目中遇到过什么难点，如何解决的
+第180题 尾递归问题
+第181题 电脑里有很多大小不一样的照片，我现在要复制到U盘上，但是U盘容量固定，让你写一个程序，挑选一组照片，让U盘的剩余空间最小。
+第182题 讲下如何负载均衡
+第183题 cookie和session的区别和联系
+第184题 nodejs是单线程还是多线程的，为什么能去开很多异步请求去访问其他接口
+第185题 一般你是如何操作数据库的？会哪些数据库
+第186题 mysql的底层引擎，发布
+第187题 如何去除数组中的重复的项？
+第188题 遍历数组处理用for循环还有什么方法吗
+第189题 浏览器出于安全考虑有？（同源策略）
+第190题 登录原理
+第191题 让我设计一个页面，选择男或女，搜索出相对性
+第192题 发送请求有哪些？
+第193题 web的安全问题？
+第194题 JS如何计算浏览器的渲染时间的
+第195题 浏览器的缓存
+第196题 var的变量提升底层原理是什么？
+第197题 event loop讲讲
+第198题 JS的回收机制说一下
+第199题 数组常用的方法有哪些
+第200题 websock的底层原理讲讲
+第201题 你的聊天室项目，如果数据传输出错了怎么办？
+第201题 现在有一大段文字，如何在页面中设置一个窗口滚动播出这段文件（轮播），轮播图如何解决卡顿问题，有手写过轮播图你，原理是什么
+第202题 垂直水平居中的方式
+第203题 实现三栏布局，中间自适应有几种方法
+第204题 算法：给你一个无序数字数组，里面是随机的书，并给出一个目标值，求这个数组的两个数，这个数的和等于目标值，要求这两个数并给出下标，
+你能想到最优的办法是什么吗（提示：快排，双指针）
+第205题 算法：给一个无序的数组，让我分割成m组，这个m组里和最大的一组是所有可能的分割情况最小的（二分答案法）
+第206题 webpack的原理
+第207题 proto 和prototype分别是什么
+第208题 在原型链上Object再往上是什么
+第209题 new和Object.create的区别
+第210题 哪种情况下__proto__和prototype的指向是同一个？
+第211题 typeof array null undefined NaN分别是什么
+第212题 把undefined和null转成Number分别是什么
+第213题 如何判断是否为数组？（instanceOf和constructor可以，但是有原型链断裂的风险，Object.toString.call()最稳定）
+第214题 instanceOf和constructor的区别
+第215题 原型链断裂了以后的结果是什么
+第216题 如果让你实现一个promise怎么样实现
+第217题 写一下实现合理化
+第218题 你对三大框架的理解是什么
+第219题 前端性能理解，优化有哪些
+第220题 nodejs了解多少
+第221题 遇到的最有难度的技术问题是什么
+第222题 redux原理讲讲
+第223题 了解web移动开发吗，移动端适配方案有哪些
+第224题 你有Native开发经验吗，讲下Android如何调用页面的资源
+第225题 行内元素和块级元素有哪些，img属于什么元素
+第226题 margin坍塌
+第227题 BFC原理
+第228题 写一下清除浮动
+第229题 写一下节点的增删改
+第230题 如何获取元素的父节点和兄弟节点
+第231题 JS如何获得用户来源（navigator.userAgent）
+第232题 跨域方法说一下
+第233题 jsonp的原理是什么，处理script标签还可以通过什么实现？（静态资源标签）
+第234题 谈谈对原型链继承
+第235题 给你一个乱序数组，你怎么样排序
+第236题 写一个方法提取一下search里面的参数
+第237题 写一个API实现insertAfter
+第238题 CSS3哪些用的比较多
+第239题 CSS动画会吗，怎么样用CSS实现一个loading效果
+第240题 如何处理CSS兼容问题
+第241题 webpack有个插件可以解决css兼容性问题你知道吗（postcss-loader）
+第242题 ES6新特性说说
+第243题 ES6的代理是什么
+第244题 let和var的区别讲讲
+第245题 写一个API，实现jQuery的$(selector)选择器，要求兼容IE6
+第246题 浏览器是如何实现通过你的代码去找到指定的元素的
+第247题 用JS模拟一个双向链表
+第248题 前端工程化思想
+第249题 模块化思想
+第250题 JS设计模式有哪些
+第251题 react的virtual DOM和Diff算法
+第252题 React的生命周期
+第253题 Vue的生命周期
+第254题 boostrap的底层原理
+第255题 图片压缩的原理
+第256题 如何处理高并发的情况下，用户顺序问题
+第257题 说一下web安全，xss，csrf防范，csrf流程，举例子
+第258题 vue双向绑定原理，vue-loader做了什么
+第259题 编程题：给出一个字符串(“obj.a”)，返回对象属性obj.a，类似eval的效果
+第260题 前端路由会不会发请求
+第261题 画布濡染有了解吗
+第262题 前端监控，pm2，如果我服务器挂了，如何快速发现并且定位错误
+第263题 pm2除了监控还能干什么，如何实现
+第264题 express中间件如何实现
+第265题 了解TCP吗，数据结构简单介绍一下以及你的想法
+第266题 webpack项目太大了怎么办
+第267题 深拷贝
+第268题 如果弹出的菜单位置过于贴近边框，如何调整这个元素的位置
+第269题 计算50个人至少有2个生日相同的概率
+第270题 一个升序数组，求两个元素的和为一个指定数
+第271题 vuex的状态管理的原理是什么
+第272题 如何在浏览器端和原生端的代码复用，讲到weex又简单讲了它的原理
+第273题 如何避免301跳转https
+第274题 tcp建立连接三次握手的区别
+第275题 操作系统进程和线程的区别
+第276题 线程的哪些资源共享，哪些资源不共享
+第277题 设计模式有哪些
+第278题 如何画一个三角形
+第279题 CSS中对溢出的处理
+第280题 CSS选择器有哪些，优先级呢？
+第281题 讲讲JS的闭包
+第282题 讲讲JS的语言特性吗
+第283题 mongoDB有哪些特点
+第284题 清除浮动的方法
+第285题 如何让一个元素消失
+第286题 重排和重绘
+第287题 HTTP状态码
+第288题 如何判断一个数组
+第289题 JS的如何实现倒计时，为什么不准，校正方式
+第290题 JS实现跨域
+第291题 实现一个ajax，兼容
+第292题 同一个网站，在上海打开慢，在北京打开快，怎么样分析原因，（DNS解析和CDN）
+第293题 vue react jquery比较，有测试过性能吗
+第294题 react父子通信
+第295题 flex弹性布局裂解，移动端适配方案有哪些
+第296题 css性能优化，就动画效果，如何从js，cs角度减少回流？
+第297题 原型基础
+第298题 block元素和inline元素的区别
+第299题 position有哪些，特性
+第300题 css选择器有哪些
+第301题 JS基本数据类型
+第302题 递归
+第303题 js事件流
+第304题 事件冒泡，事件捕获，事件委托的原理，如何实现委托，事件，委托的有点是什么，事件监听
+第305题 输入URL浏览器是如何工作的
+第306题 MVVM实现原理
+第307题 流式布局
+第308题 css伪元素有哪些
+第309题 抓包
+第310题 transition生命周期
+第311题 栈和队列有什么区别，具体的应用场景
+第312题 js事件模型，捕获和冒泡，阻止冒泡
+第313题 preventDefault和stopPropagation的区别
+第314题 页面共享数据的方法有哪些
+第315题 用户页面打开很慢，有哪些优化方式
+第316题 react首次渲染过程
+第317题 typescript和es6的区别
+第318题 如何理解html语义化
+第319题 如何实现文件上传的功能
+第320题 长链接
